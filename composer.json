@@ -1,0 +1,19 @@
+{
+    "name": "nkwtnb/ogparser",
+    "description": "library for parse ogp.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "nkwtnb\\ogparser\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "nkwtnb"
+        }
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    }
+}
