@@ -1,7 +1,8 @@
 <?php
 namespace nkwtnb\ogparser;
 
-use Error;
+use nkwtnb\ogparser\OGPError;
+use Exception;
 
 class Ogparser {
 
@@ -9,8 +10,15 @@ class Ogparser {
   protected $title;
   protected $description;
   protected $image;
+  protected $site_name;
 
   public function __construct(string $url) {
+    // you can access only HTTPS sites.
+    if (preg_match('/^https:\/\/.*/', $url) === 0) {
+      throw new Exception(
+        OGPError::$MSG["ONLY_HTTPS"]
+      );
+    }
     $this->url = $url;
   }
 
@@ -23,7 +31,17 @@ class Ogparser {
     $html = curl_exec($curl);
     $status_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     if ($status_code !== 200) {
-      throw new Error("fetch error");
+      if ($status_code === 0) {
+        throw new Exception(
+          OGPError::$MSG["SITE_NOT_FOUND"],
+          $status_code
+        );
+      } else if($status_code === 404) {
+        throw new Exception(
+          OGPError::$MSG["PAGE_NOT_FOUND"],
+          $status_code
+        );
+      }
     }
 
     $dom = new \DOMDocument();
@@ -42,17 +60,17 @@ class Ogparser {
     }
     @$dom->loadHTML(mb_convert_encoding($html, 'HTML-ENTITIES', $from_encoding));
     $xml_object = simplexml_import_dom($dom);
-
-    $this->title = $this->get_title($xml_object);
-    $this->description = $this->get_description($xml_object);
-    $this->image = $this->get_thumbnail($xml_object);
+    $this->title = $this->find_title($xml_object);
+    $this->description = $this->find_description($xml_object);
+    $this->image = $this->find_image($xml_object);
+    $this->site_name = $this->find_site_name($xml_object);
     curl_close($curl);
   }
 
   /**
-   * タイトルの取得
+   * DOMからタイトルを取得
    */
-  private function get_title($xml_object)
+  private function find_title($xml_object)
   {
     $value = "";
     $og_tag = $xml_object->xpath('//meta[@property="og:title"]/@content');
@@ -68,9 +86,9 @@ class Ogparser {
   }
 
   /**
-   * 説明の取得
+   * DOMから説明を取得
    */
-  private function get_description($xml_object)
+  private function find_description($xml_object)
   {
     $value = "";
     $og_tag = $xml_object->xpath('//meta[@property="og:description"]/@content');
@@ -84,11 +102,10 @@ class Ogparser {
     }
     return (string)$value;
   }
-
   /**
-   * サムネイルの取得
+   * DOMからサムネイル画像を取得
    */
-  private function get_thumbnail($xml_object)
+  private function find_image($xml_object)
   {
     $value = "";
     $og_tag = $xml_object->xpath('//meta[@property="og:image"]/@content');
@@ -102,8 +119,51 @@ class Ogparser {
     }
     return (string)$value;
   }
-
-  public static function staTest() {
-    
+  /**
+   * DOMからサイト名を取得
+   */
+  private function find_site_name($xml_object)
+  {
+    $value = "";
+    $og_tag = $xml_object->xpath('//meta[@property="og:site_name"]/@content');
+    if (count($og_tag) > 0) {
+      $value = $og_tag[0];
+    } else {
+      $meta_thubnail_tag = $xml_object->xpath('//meta[@name="site_name"]/@content');
+      if (count($meta_thubnail_tag) > 0) {
+        $value = $meta_thubnail_tag[0];
+      }
+    }
+    return (string)$value;
+  }
+  /**
+   * URLを取得
+   */
+  public function get_url() {
+    return $this->url;
+  }
+  /**
+   * タイトルを取得
+   */
+  public function get_title() {
+    return $this->title;
+  }
+  /**
+   * 説明を取得
+   */
+  public function get_description() {
+    return $this->description;
+  }
+  /**
+   * サムネイル画像を取得
+   */
+  public function get_image() {
+    return $this->image;
+  }
+  /**
+   * サイト名を取得
+   */
+  public function get_site_name() {
+    return $this->site_name;
   }
 }
