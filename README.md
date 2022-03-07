@@ -1,5 +1,5 @@
 # OGParser
-This is a library for get OGP.
+This is a library for parse OGP.
 
 ## Install
 ```
